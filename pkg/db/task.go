@@ -1,6 +1,9 @@
 package db
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
 
 type Task struct {
 	ID      string `json:"id"`
@@ -46,4 +49,74 @@ func Tasks(limit int) ([]*Task, error) {
 	}
 
 	return tasks, nil
+}
+
+func GetTask(id string) (*Task, error) {
+	var task Task
+	query := `SELECT * FROM scheduler WHERE id = :id;`
+
+	err := DB.QueryRow(query, sql.Named("id", id)).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+
+	if err != nil {
+		return &Task{}, err
+	}
+
+	return &task, nil
+}
+
+func UpdateTask(task *Task) error {
+	query := `UPDATE scheduler SET date = :date, title = :title, repeat = :repeat, comment = :comment WHERE id = :id`
+	res, err := DB.Exec(query, sql.Named("id", task.ID), sql.Named("date", task.Date), sql.Named("title", task.Title), sql.Named("repeat", task.Repeat), sql.Named("comment", task.Comment))
+	if err != nil {
+		return err
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return fmt.Errorf(`incorrect id for updating task`)
+	}
+	return nil
+}
+
+func DeleteTask(id string) error {
+	query := `DELETE FROM scheduler WHERE id = :id;`
+	res, err := DB.Exec(query, sql.Named("id", id))
+
+	if err != nil {
+		return err
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return fmt.Errorf("Task not found")
+	}
+
+	return nil
+}
+
+func UpdateDate(next string, id string) error {
+	query := `UPDATE scheduler SET date = :date WHERE id = :id;`
+	res, err := DB.Exec(query, sql.Named("id", id), sql.Named("date", next))
+
+	if err != nil {
+		return err
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return fmt.Errorf("Task not found")
+	}
+
+	return nil
 }

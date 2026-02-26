@@ -34,29 +34,23 @@ func writeJson(w http.ResponseWriter, statusCode int, data any) {
 	}
 }
 
-func checkDate(req taskRequest) (string, error) {
+func checkDate(task db.Task) (string, error) {
 	now := time.Now()
-	if req.Date == "" {
+	if len(task.Date) == 0 {
 		return now.Format(DateFormat), nil
 	}
-	date, err := time.Parse(DateFormat, req.Date)
+	date, err := time.Parse(DateFormat, task.Date)
 	if err != nil {
 		return "", err
 	}
 
 	var next string
 
-	if req.Repeat != "" {
-		next, err = NextDate(now, req.Date, req.Repeat)
-		if err != nil {
-			return "", err
-		}
-	}
-
 	if afterNow(now, date) {
-		if len(req.Repeat) == 0 {
+		if len(task.Repeat) == 0 {
 			return now.Format(DateFormat), nil
 		} else {
+			next, err = NextDate(now, task.Date, task.Repeat)
 			return next, nil
 		}
 	}
@@ -69,35 +63,36 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var req taskRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Decoding Error: "+err.Error(), http.StatusBadRequest)
+		writeJson(w, http.StatusBadRequest, taskError{err.Error()})
 		return
 	}
 
 	if req.Title == "" {
-		http.Error(w, "Empty title", http.StatusBadRequest)
-		return
-	}
-
-	date, err := checkDate(req)
-	if err != nil {
-		http.Error(w, "Date error: "+err.Error(), http.StatusBadRequest)
+		writeJson(w, http.StatusBadRequest, taskError{Error: "Empty title"})
 		return
 	}
 
 	task := &db.Task{
-		Date:    date,
+		Date:    req.Date,
 		Title:   req.Title,
 		Comment: req.Comment,
 		Repeat:  req.Repeat,
 	}
 
+	date, err := checkDate(*task)
+	if err != nil {
+		writeJson(w, http.StatusBadRequest, taskError{err.Error()})
+		return
+	}
+
+	task.Date = date
+
 	id, err := db.AddTask(task)
 
 	if err != nil {
-		http.Error(w, "Add task error: "+err.Error(), http.StatusInternalServerError)
+		writeJson(w, http.StatusInternalServerError, taskError{err.Error()})
 		return
 	}
 
 	writeJson(w, http.StatusOK, taskID{id})
-
 }
