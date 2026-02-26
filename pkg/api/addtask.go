@@ -16,8 +16,12 @@ type taskRequest struct {
 	Repeat  string `json:"repeat"`
 }
 
-type TaskID struct {
+type taskID struct {
 	ID int64 `json:"id"`
+}
+
+type taskError struct {
+	Error string `json:"error,omitempty"`
 }
 
 func writeJson(w http.ResponseWriter, statusCode int, data any) {
@@ -94,6 +98,6 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, TaskID{id})
+	writeJson(w, http.StatusOK, taskID{id})
 
 }
