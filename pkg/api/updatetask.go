@@ -20,21 +20,13 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	date, err := checkDate(req)
+	err := checkDate(&req)
 	if err != nil {
 		writeJson(w, http.StatusBadRequest, taskError{err.Error()})
 		return
 	}
 
-	task := &db.Task{
-		ID:      req.ID,
-		Date:    date,
-		Title:   req.Title,
-		Comment: req.Comment,
-		Repeat:  req.Repeat,
-	}
-
-	err = db.UpdateTask(task)
+	err = db.UpdateTask(&req)
 
 	if err != nil {
 		writeJson(w, http.StatusInternalServerError, taskError{err.Error()})

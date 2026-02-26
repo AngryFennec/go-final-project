@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -34,29 +33,31 @@ func writeJson(w http.ResponseWriter, statusCode int, data any) {
 	}
 }
 
-func checkDate(task db.Task) (string, error) {
+func checkDate(task *db.Task) error {
 	now := time.Now()
 	if len(task.Date) == 0 {
-		return now.Format(DateFormat), nil
+		task.Date = now.Format(DateFormat)
+		return nil
+
 	}
 	date, err := time.Parse(DateFormat, task.Date)
 	if err != nil {
-		return "", err
+		return err
 	}
-
-	var next string
 
 	if afterNow(now, date) {
 		if len(task.Repeat) == 0 {
-			return now.Format(DateFormat), nil
-		} else {
-			next, err = NextDate(now, task.Date, task.Repeat)
-			return next, nil
+			task.Date = now.Format(DateFormat)
+			return nil
 		}
+		next, err := NextDate(now, task.Date, task.Repeat)
+		if err != nil {
+			return err
+		}
+		task.Date = next
 	}
 
-	return "", fmt.Errorf("wrong date parsing")
-
+	return nil
 }
 
 func addTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -79,13 +80,11 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 		Repeat:  req.Repeat,
 	}
 
-	date, err := checkDate(*task)
+	err := checkDate(task)
 	if err != nil {
 		writeJson(w, http.StatusBadRequest, taskError{err.Error()})
 		return
 	}
-
-	task.Date = date
 
 	id, err := db.AddTask(task)
 
