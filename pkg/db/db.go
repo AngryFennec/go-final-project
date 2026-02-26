@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS scheduler (
 CREATE INDEX IF NOT EXISTS idx_scheduler_date ON scheduler(date);
 `
 
-var db *sql.DB
+var DB *sql.DB
 
 func Init(dbFile string) error {
 	_, err := os.Stat(dbFile)
@@ -28,17 +28,15 @@ func Init(dbFile string) error {
 		install = true
 	}
 
-	db, err = sql.Open("sqlite", dbFile)
+	DB, err = sql.Open("sqlite", dbFile)
 
 	if err != nil {
 		return err
 	}
 
 	if install {
-		db.Exec(schema)
+		DB.Exec(schema)
 	}
-
-	defer db.Close()
 
 	return err
 }

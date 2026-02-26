@@ -15,7 +15,7 @@ func main() {
 	if err != nil {
 		logger.Fatalf("%s", err.Error())
 	}
-
+	defer db.DB.Close()
 	err = server.RunServer()
 	if err != nil {
 		logger.Fatalf("%s", err.Error())
