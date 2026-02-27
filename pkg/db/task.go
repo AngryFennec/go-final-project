@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
 )
 
 type Task struct {
@@ -29,7 +29,7 @@ func Tasks(limit int) ([]*Task, error) {
 	rows, err := DB.Query(query, sql.Named("limit", limit))
 
 	if err != nil {
-		return []*Task{}, err
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -38,30 +38,30 @@ func Tasks(limit int) ([]*Task, error) {
 		var task Task
 		err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 		if err != nil {
-			return []*Task{}, err
+			return nil, err
 		}
 
 		tasks = append(tasks, &task)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []*Task{}, err
+		return nil, err
 	}
 
 	return tasks, nil
 }
 
 func GetTask(id string) (*Task, error) {
-	var task Task
-	query := `SELECT * FROM scheduler WHERE id = :id;`
+	var task *Task
+	query := `SELECT id, date, title, comment, repeat FROM scheduler WHERE id = :id;`
 
 	err := DB.QueryRow(query, sql.Named("id", id)).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 
 	if err != nil {
-		return &Task{}, err
+		return nil, err
 	}
 
-	return &task, nil
+	return task, nil
 }
 
 func UpdateTask(task *Task) error {
@@ -76,7 +76,7 @@ func UpdateTask(task *Task) error {
 		return err
 	}
 	if count == 0 {
-		return fmt.Errorf(`incorrect id for updating task`)
+		return errors.New(`incorrect id for updating task`)
 	}
 	return nil
 }
@@ -95,7 +95,7 @@ func DeleteTask(id string) error {
 	}
 
 	if count == 0 {
-		return fmt.Errorf("Task not found")
+		return errors.New("task not found")
 	}
 
 	return nil
@@ -115,7 +115,7 @@ func UpdateDate(next string, id string) error {
 	}
 
 	if count == 0 {
-		return fmt.Errorf("Task not found")
+		return errors.New("task not found")
 	}
 
 	return nil

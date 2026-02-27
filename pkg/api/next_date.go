@@ -1,7 +1,7 @@
 package api
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,7 +28,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 	switch repeatRule[0] {
 	case "y":
 		if len(repeatRule) > 1 {
-			return "", fmt.Errorf("wrong year format")
+			return "", errors.New("wrong year format")
 		}
 
 		newDate := date
@@ -42,14 +42,14 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 
 	case "d":
 		if len(repeatRule) != 2 {
-			return "", fmt.Errorf("wrong day format")
+			return "", errors.New("wrong day format")
 		}
 		daysCount, err := strconv.Atoi(repeatRule[1])
 		if err != nil {
 			return "", err
 		}
 		if daysCount > MaxDays {
-			return "", fmt.Errorf("wrong day format")
+			return "", errors.New("wrong day format")
 		}
 
 		newDate := date
@@ -62,7 +62,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 		return newDate.Format(DateFormat), nil
 	}
 
-	return "", fmt.Errorf("wrong date format")
+	return "", errors.New("wrong date format")
 }
 
 func parseNow(rawNow string) (time.Time, error) {
@@ -107,5 +107,9 @@ func nextDateHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(nextDate))
+	_, err = w.Write([]byte(nextDate))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
